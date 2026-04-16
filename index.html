@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liga Nekoma Sexta División</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+<style>
+  :root {
+    --bg: #e9e9ea;
+    --bg-2: #dcdcde;
+    --ink: #0b1020;
+    --blue: #2a27ff;
+    --blue-deep: #1a17d9;
+    --muted: #6b6e7a;
+    --line: rgba(11,16,32,0.12);
+    --card: rgba(255,255,255,0.6);
+    --hover: rgba(42,39,255,0.04);
+    --group: rgba(11,16,32,0.04);
+    --th-bg: rgba(255,255,255,0.5);
+    --select-arrow: "%230b1020";
+  }
+  body.dark {
+    --bg: #0a0c14;
+    --bg-2: #05060c;
+    --ink: #e9ebf2;
+    --blue: #5957ff;
+    --blue-deep: #3f3ce6;
+    --muted: #7e8393;
+    --line: rgba(233,235,242,0.1);
+    --card: rgba(255,255,255,0.035);
+    --hover: rgba(89,87,255,0.1);
+    --group: rgba(255,255,255,0.04);
+    --th-bg: rgba(255,255,255,0.03);
+    --select-arrow: "%23e9ebf2";
+  }
+  body.dark::before {
+    background:
+      radial-gradient(1200px 800px at 20% 10%, rgba(89,87,255,0.08), transparent 60%),
+      radial-gradient(900px 700px at 85% 85%, rgba(255,255,255,0.04), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%) !important;
+  }
+  body.dark::after { opacity: 0.15; mix-blend-mode: screen; }
+  body.dark .hero .ghost { color: rgba(233,235,242,0.05); }
+  body.dark .rank { background: var(--ink); color: #0a0c14; }
+  body.dark .rank.top { background: var(--blue); color: #fff; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Grainy brushed background */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,0.8), transparent 60%),
+      radial-gradient(900px 700px at 85% 85%, rgba(180,180,190,0.5), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    z-index: -2;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.45'/></svg>");
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  header {
+    padding: 48px 32px 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  .meta .arrow { color: var(--blue); font-weight: 600; }
+
+  .brand {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+  }
+  .brand small {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    margin-top: 2px;
+    color: var(--muted);
+  }
+
+  .hero {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px 24px;
+    position: relative;
+  }
+  .hero h1 {
+    font-family: 'Archivo Black', sans-serif;
+    color: var(--blue);
+    font-size: clamp(64px, 8vw, 140px);
+    line-height: 0.88;
+    margin: 0;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+  }
+  .hero .ghost {
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(64px, 8vw, 140px);
+    line-height: 0.88;
+    color: rgba(11,16,32,0.06);
+    white-space: nowrap;
+    overflow: hidden;
+    pointer-events: none;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px 80px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1.5px solid var(--line);
+    padding-bottom: 0;
+    flex-wrap: wrap;
+  }
+  .tab {
+    background: none;
+    border: 0;
+    padding: 14px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1.5px;
+    transition: color .15s, border-color .15s;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .filters {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .filter select {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    padding: 10px 34px 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background-color: var(--card);
+    backdrop-filter: blur(6px);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    min-width: 180px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .filter select:hover { border-color: rgba(11,16,32,0.28); }
+  .filter select:focus { outline: 2px solid var(--blue); outline-offset: 2px; border-color: var(--blue); }
+  .filter select option { background: #ffffff; color: #0b1020; }
+  body.dark .filter select { background-color: rgba(20,22,32,0.9); }
+  body.dark .filter select:hover { border-color: rgba(233,235,242,0.25); }
+  body.dark .filter select option { background: #14161f; color: #e9ebf2; }
+  .filter-reset {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .filter-reset:hover { color: var(--blue); border-color: var(--blue); }
+
+  .panel { display: none; animation: fade .25s ease; }
+  .panel.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  .table-wrap::-webkit-scrollbar { height: 8px; }
+  .table-wrap::-webkit-scrollbar-thumb { background: rgba(11,16,32,0.2); border-radius: 999px; }
+
+  table {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--th-bg);
+    position: sticky; top: 0;
+  }
+  tr:last-child td { border-bottom: 0; }
+  tr:hover td { background: var(--hover); }
+
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .rank.top { background: var(--blue); }
+
+  .team {
+    font-family: 'Archivo Black', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    font-size: 15px;
+  }
+
+  .score {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .score .sep { color: var(--muted); }
+  .score .win, .score.win { color: var(--blue); }
+
+  .bar {
+    position: relative;
+    height: 6px;
+    background: rgba(11,16,32,0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 80px;
+  }
+  .bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--blue);
+    border-radius: 999px;
+  }
+  .bar-cell { min-width: 140px; }
+  .bar-wrap { display: flex; align-items: center; gap: 10px; }
+  .bar-wrap .pct { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); min-width: 42px; text-align: right; }
+
+  .group-header td {
+    background: var(--group);
+    font-family: 'Archivo Black', sans-serif;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    padding-top: 18px;
+    padding-bottom: 10px;
+  }
+
+  .state {
+    padding: 40px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .state.error { color: #b0002a; }
+
+  footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px 40px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+
+  .theme-toggle {
+    width: 40px; height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    backdrop-filter: blur(6px);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .15s, border-color .15s, transform .15s;
+  }
+  .theme-toggle:hover { color: var(--blue); border-color: var(--blue); transform: rotate(15deg); }
+  .theme-toggle .icon-moon { display: none; }
+  body.dark .theme-toggle .icon-sun { display: none; }
+  body.dark .theme-toggle .icon-moon { display: inline-block; }
+
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+  .btn-export {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--card);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+    margin-left: auto;
+  }
+  .btn-export:hover { color: var(--blue); border-color: var(--blue); }
+  .btn-export:disabled { opacity: 0.6; cursor: wait; }
+
+  th.sortable {
+    cursor: pointer;
+    user-select: none;
+    padding-right: 28px;
+    position: relative;
+  }
+  th.sortable:hover { color: var(--ink); }
+  th.sortable::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px; height: 10px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='10' viewBox='0 0 8 10'><path d='M4 0l4 4H0z' fill='currentColor' opacity='0.25'/><path d='M4 10l4-4H0z' fill='currentColor' opacity='0.25'/></svg>");
+    background-repeat: no-repeat;
+    color: var(--ink);
+    opacity: 0.6;
+  }
+  th.sortable.sort-asc::after {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='10' viewBox='0 0 8 10'><path d='M4 0l4 4H0z' fill='%232a27ff'/><path d='M4 10l4-4H0z' fill='currentColor' opacity='0.25'/></svg>");
+    color: var(--blue);
+  }
+  th.sortable.sort-desc::after {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='10' viewBox='0 0 8 10'><path d='M4 0l4 4H0z' fill='currentColor' opacity='0.25'/><path d='M4 10l4-4H0z' fill='%232a27ff'/></svg>");
+    color: var(--blue);
+  }
+  th.sortable.active { color: var(--blue); }
+
+  @media (max-width: 640px) {
+    header { padding: 28px 20px 8px; }
+    .hero { padding: 16px 20px; }
+    main { padding: 16px 20px 60px; }
+    table { font-size: 13px; min-width: 520px; }
+    th, td { padding: 11px 12px; }
+    th { font-size: 10px; }
+    .team { font-size: 13px; }
+    .score { font-size: 14px; }
+    .bar-cell { min-width: 110px; }
+    .bar-wrap .pct { font-size: 11px; min-width: 36px; }
+    .rank { min-width: 24px; height: 24px; font-size: 11px; }
+    footer { padding: 16px 20px 28px; font-size: 10px; }
+  }
+  @media (max-width: 420px) {
+    .hero h1, .hero .ghost { font-size: clamp(52px, 16vw, 96px); }
+    .tab { padding: 12px 14px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">NEKOMA<small>TABLE · TENNIS</small></div>
+  <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema">
+    <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+</header>
+
+<section class="hero">
+  <div class="ghost">LIGA NEKOMA</div>
+  <h1>Liga<br/>Nekoma Sexta División</h1>
+</section>
+
+<main>
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="tabla" role="tab">Tabla</button>
+    <button class="tab" data-tab="partidos" role="tab">Resultados Partidos</button>
+    <button class="tab" data-tab="jugadores" role="tab">Resultados Jugadores</button>
+  </div>
+
+  <div id="tabla" class="panel active">
+    <div class="toolbar">
+      <button type="button" class="btn-export" data-target="tabla-card">Exportar PNG</button>
+    </div>
+    <div class="card" id="tabla-card"><div id="tabla-content" class="state">Cargando…</div></div>
+  </div>
+  <div id="partidos" class="panel">
+    <div class="filters" id="partidos-filters" hidden>
+      <label class="filter">
+        <span>Fecha</span>
+        <select id="filter-fecha"><option value="">Todas</option></select>
+      </label>
+      <label class="filter">
+        <span>Equipo</span>
+        <select id="filter-equipo"><option value="">Todos</option></select>
+      </label>
+      <button type="button" class="filter-reset" id="filter-reset">Limpiar</button>
+      <button type="button" class="btn-export" data-target="partidos-card">Exportar PNG</button>
+    </div>
+    <div class="card" id="partidos-card"><div id="partidos-content" class="state">Cargando…</div></div>
+  </div>
+  <div id="jugadores" class="panel">
+    <div class="filters" id="jugadores-filters" hidden>
+      <label class="filter">
+        <span>Equipo</span>
+        <select id="filter-jug-equipo"><option value="">Todos</option></select>
+      </label>
+      <button type="button" class="filter-reset" id="filter-jug-reset">Limpiar</button>
+      <button type="button" class="btn-export" data-target="jugadores-card">Exportar PNG</button>
+    </div>
+    <div class="card" id="jugadores-card"><div id="jugadores-content" class="state">Cargando…</div></div>
+  </div>
+</main>
+
+<footer>
+  <span>NEKOMA · Sexta División · 2026</span>
+  <span id="updated"></span>
+</footer>
+
+<script>
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTCQ8MCOsw6aLINOHvTa8a_DijQZBmcxxdCBqIOJb2SzTPg_XSDzGFyfQEao1bFuOkaQ41NZnLTLpJ3/pub?gid=13146208&single=true&output=csv';
+
+// Minimal CSV parser (handles quoted fields, commas, newlines, escaped quotes)
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQ = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function normalizeKey(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+}
+
+function toRecords(rows) {
+  if (!rows.length) return [];
+  const header = rows[0].map(normalizeKey);
+  return rows.slice(1)
+    .filter(r => r.some(v => v && v.trim() !== ''))
+    .map(r => {
+      const o = {};
+      header.forEach((h, i) => o[h] = (r[i] ?? '').trim());
+      return o;
+    });
+}
+
+function toNum(v) {
+  if (v === undefined || v === null || v === '') return NaN;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+// ---- Queries adapted to JS ----
+
+function queryTabla(records) {
+  const counts = new Map();
+  for (const r of records) {
+    const sa = toNum(r.sets_a), sb = toNum(r.sets_b);
+    if (!Number.isFinite(sa) || !Number.isFinite(sb)) continue;
+    let winner = null;
+    if (sa > sb) winner = r.equipo_a;
+    else if (sa < sb) winner = r.equipo_b;
+    if (!winner) continue;
+    counts.set(winner, (counts.get(winner) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([equipo, victorias]) => ({ equipo, victorias }))
+    .sort((a, b) => b.victorias - a.victorias);
+}
+
+function queryPartidos(records) {
+  const map = new Map();
+  for (const r of records) {
+    const key = [r.fecha, r.equipo_a, r.equipo_b, r.num_partido].join('||');
+    if (!map.has(key)) {
+      map.set(key, {
+        fecha: r.fecha,
+        equipo_a: r.equipo_a,
+        equipo_b: r.equipo_b,
+        num_partido: r.num_partido,
+        ganados_a: 0,
+        ganados_b: 0,
+      });
+    }
+    const row = map.get(key);
+    const sa = toNum(r.sets_a), sb = toNum(r.sets_b);
+    if (Number.isFinite(sa) && Number.isFinite(sb)) {
+      if (sa > sb) row.ganados_a += 1;
+      else if (sa < sb) row.ganados_b += 1;
+    }
+  }
+  return [...map.values()].sort((a, b) => toNum(a.num_partido) - toNum(b.num_partido));
+}
+
+function queryJugadores(records) {
+  const partidos = [];
+  for (const r of records) {
+    const sa = toNum(r.sets_a), sb = toNum(r.sets_b);
+    if (!Number.isFinite(sa) || !Number.isFinite(sb)) continue;
+    partidos.push({ equipo: r.equipo_a, jugador: r.jugador_a, ganado: sa > sb ? 1 : 0 });
+    partidos.push({ equipo: r.equipo_b, jugador: r.jugador_b, ganado: sb > sa ? 1 : 0 });
+  }
+  const totEquipo = new Map();
+  for (const p of partidos) {
+    totEquipo.set(p.equipo, (totEquipo.get(p.equipo) ?? 0) + p.ganado);
+  }
+  const agg = new Map();
+  for (const p of partidos) {
+    const k = p.equipo + '||' + p.jugador;
+    if (!agg.has(k)) agg.set(k, { equipo: p.equipo, jugador: p.jugador, jugados: 0, ganados: 0 });
+    const row = agg.get(k);
+    row.jugados += 1;
+    row.ganados += p.ganado;
+  }
+  const out = [...agg.values()].map(r => {
+    const totE = totEquipo.get(r.equipo) || 0;
+    return {
+      ...r,
+      efectividad: r.jugados > 0 ? Math.round(r.ganados * 1000 / r.jugados) / 10 : 0,
+      aportacion: totE > 0 ? Math.round(r.ganados * 1000 / totE) / 10 : 0,
+    };
+  });
+  out.sort((a, b) => {
+    if (a.equipo !== b.equipo) return a.equipo.localeCompare(b.equipo);
+    if (b.aportacion !== a.aportacion) return b.aportacion - a.aportacion;
+    return b.efectividad - a.efectividad;
+  });
+  return out;
+}
+
+// ---- Renderers ----
+
+const state = {
+  tabla: { rows: [], sort: { key: 'victorias', dir: 'desc' } },
+  partidos: { rows: [], sort: { key: 'num_partido', dir: 'asc' } },
+  jugadores: { rows: [], sort: { key: 'ganados', dir: 'desc' }, filterEquipo: '' },
+};
+
+function compareBy(a, b, key, dir, type) {
+  const mul = dir === 'desc' ? -1 : 1;
+  const av = a[key], bv = b[key];
+  if (type === 'num') {
+    const an = toNum(av), bn = toNum(bv);
+    const ae = Number.isFinite(an), be = Number.isFinite(bn);
+    if (!ae && !be) return 0;
+    if (!ae) return 1;
+    if (!be) return -1;
+    return (an - bn) * mul;
+  }
+  return String(av ?? '').localeCompare(String(bv ?? '')) * mul;
+}
+
+function sortRows(rows, key, dir, type, tiebreakers) {
+  if (!key) return rows.slice();
+  return rows.slice().sort((a, b) => {
+    const primary = compareBy(a, b, key, dir, type);
+    if (primary !== 0) return primary;
+    if (tiebreakers) {
+      for (const tb of tiebreakers) {
+        const r = compareBy(a, b, tb.key, tb.dir, tb.type);
+        if (r !== 0) return r;
+      }
+    }
+    return 0;
+  });
+}
+
+function sortIndicator(col, sort) {
+  const cls = ['sortable'];
+  if (col.numeric) cls.push('num');
+  if (col.extra) cls.push(col.extra);
+  if (sort.key === col.key) { cls.push('active'); cls.push('sort-' + sort.dir); }
+  return `class="${cls.join(' ')}" data-key="${col.key}" data-type="${col.numeric ? 'num' : 'str'}"${col.width ? ` style="width:${col.width}"` : ''}`;
+}
+
+function renderTabla() {
+  const el = document.getElementById('tabla-content');
+  if (!el) return;
+  const { rows, sort } = state.tabla;
+  if (!rows.length) { el.className = 'state'; el.textContent = 'Sin datos'; return; }
+  const sorted = sortRows(rows, sort.key, sort.dir, sort.key === 'victorias' ? 'num' : 'str');
+  const max = Math.max(...rows.map(r => r.victorias)) || 1;
+  const cols = [
+    { key: 'equipo', label: 'Equipo' },
+    { key: 'victorias', label: 'Victorias', numeric: true },
+  ];
+  el.className = '';
+  el.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th style="width:72px;">#</th>
+        ${cols.map(c => `<th ${sortIndicator(c, sort)}>${c.label}</th>`).join('')}
+        <th class="bar-cell"></th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map((r, i) => {
+          const rank = rows.slice().sort((a,b)=>b.victorias-a.victorias).findIndex(x => x.equipo === r.equipo) + 1;
+          return `
+          <tr>
+            <td><span class="rank ${rank === 1 ? 'top' : ''}">${rank}</span></td>
+            <td class="team">${escapeHTML(r.equipo)}</td>
+            <td class="num"><span class="score"><span class="win">${r.victorias}</span></span></td>
+            <td class="bar-cell"><div class="bar"><span style="width:${(r.victorias/max*100).toFixed(1)}%"></span></div></td>
+          </tr>
+        `;}).join('')}
+      </tbody>
+    </table></div>
+  `;
+}
+
+let allPartidos = [];
+
+function renderPartidos(rows) {
+  const host = document.getElementById('partidos-content');
+  if (!host) return;
+  if (!rows.length) {
+    host.className = 'state';
+    host.textContent = 'Sin resultados para los filtros seleccionados';
+    return;
+  }
+  const sort = state.partidos.sort;
+  const colTypes = { num_partido: 'num', fecha: 'str', equipo_a: 'str', equipo_b: 'str', ganados_a: 'num', ganados_b: 'num' };
+  const sorted = sortRows(rows, sort.key, sort.dir, colTypes[sort.key] || 'str');
+  const cols = [
+    { key: 'num_partido', label: '#', numeric: true, width: '60px' },
+    { key: 'fecha', label: 'Fecha' },
+    { key: 'equipo_a', label: 'Equipo A' },
+    { key: 'ganados_a', label: 'A', numeric: true },
+    { key: 'ganados_b', label: 'B', numeric: true },
+    { key: 'equipo_b', label: 'Equipo B' },
+  ];
+  host.className = '';
+  host.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr>
+        ${cols.map(c => `<th ${sortIndicator(c, sort)}>${c.label}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${sorted.map(r => {
+          const aWin = r.ganados_a > r.ganados_b;
+          const bWin = r.ganados_b > r.ganados_a;
+          return `
+            <tr>
+              <td><span class="rank">${escapeHTML(r.num_partido)}</span></td>
+              <td>${escapeHTML(r.fecha)}</td>
+              <td class="team" style="${aWin ? 'color:var(--blue);' : ''}">${escapeHTML(r.equipo_a)}</td>
+              <td class="num"><span class="score ${aWin ? 'win' : ''}">${r.ganados_a}</span></td>
+              <td class="num"><span class="score ${bWin ? 'win' : ''}">${r.ganados_b}</span></td>
+              <td class="team" style="${bWin ? 'color:var(--blue);' : ''}">${escapeHTML(r.equipo_b)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table></div>
+  `;
+}
+
+function applyPartidosFilters() {
+  const f = document.getElementById('filter-fecha').value;
+  const e = document.getElementById('filter-equipo').value;
+  const filtered = allPartidos.filter(r =>
+    (!f || r.fecha === f) &&
+    (!e || r.equipo_a === e || r.equipo_b === e)
+  );
+  renderPartidos(filtered);
+}
+
+function setupPartidosFilters(rows) {
+  allPartidos = rows;
+  state.partidos.rows = rows;
+  const fechas = [...new Set(rows.map(r => r.fecha).filter(Boolean))];
+  const equipos = [...new Set(rows.flatMap(r => [r.equipo_a, r.equipo_b]).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+
+  const fSel = document.getElementById('filter-fecha');
+  const eSel = document.getElementById('filter-equipo');
+  fSel.innerHTML = '<option value="">Todas</option>' +
+    fechas.map(f => `<option value="${escapeHTML(f)}">${escapeHTML(f)}</option>`).join('');
+  eSel.innerHTML = '<option value="">Todos</option>' +
+    equipos.map(e => `<option value="${escapeHTML(e)}">${escapeHTML(e)}</option>`).join('');
+
+  fSel.addEventListener('change', applyPartidosFilters);
+  eSel.addEventListener('change', applyPartidosFilters);
+  document.getElementById('filter-reset').addEventListener('click', () => {
+    fSel.value = '';
+    eSel.value = '';
+    applyPartidosFilters();
+  });
+
+  document.getElementById('partidos-filters').hidden = false;
+  renderPartidos(rows);
+}
+
+function setupJugadoresFilters(rows) {
+  const equipos = [...new Set(rows.map(r => r.equipo).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b));
+  const sel = document.getElementById('filter-jug-equipo');
+  sel.innerHTML = '<option value="">Todos</option>' +
+    equipos.map(e => `<option value="${escapeHTML(e)}">${escapeHTML(e)}</option>`).join('');
+  sel.addEventListener('change', () => {
+    state.jugadores.filterEquipo = sel.value;
+    renderJugadores();
+  });
+  document.getElementById('filter-jug-reset').addEventListener('click', () => {
+    sel.value = '';
+    state.jugadores.filterEquipo = '';
+    renderJugadores();
+  });
+  document.getElementById('jugadores-filters').hidden = false;
+}
+
+function renderJugadores() {
+  const el = document.getElementById('jugadores-content');
+  if (!el) return;
+  const { rows, sort, filterEquipo } = state.jugadores;
+  if (!rows.length) { el.className = 'state'; el.textContent = 'Sin datos'; return; }
+  const colTypes = { equipo: 'str', jugador: 'str', jugados: 'num', ganados: 'num', efectividad: 'num', aportacion: 'num' };
+  const filtered = filterEquipo ? rows.filter(r => r.equipo === filterEquipo) : rows;
+  if (!filtered.length) { el.className = 'state'; el.textContent = 'Sin resultados para los filtros seleccionados'; return; }
+  const tiebreakers = sort.key === 'ganados'
+    ? [{ key: 'efectividad', dir: 'desc', type: 'num' }]
+    : null;
+  const sorted = sortRows(filtered, sort.key, sort.dir, colTypes[sort.key] || 'str', tiebreakers);
+  const cols = [
+    { key: 'equipo', label: 'Equipo' },
+    { key: 'jugador', label: 'Jugador' },
+    { key: 'jugados', label: 'Jugados', numeric: true },
+    { key: 'ganados', label: 'Ganados', numeric: true },
+    { key: 'efectividad', label: 'Efectividad', numeric: true, extra: 'bar-cell' },
+    { key: 'aportacion', label: 'Aportación', numeric: true, extra: 'bar-cell' },
+  ];
+  el.className = '';
+  el.innerHTML = `
+    <div class="table-wrap"><table>
+      <thead><tr>
+        ${cols.map(c => `<th ${sortIndicator(c, sort)}>${c.label}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${sorted.map(g => `
+          <tr>
+            <td class="team">${escapeHTML(g.equipo)}</td>
+            <td>${escapeHTML(g.jugador)}</td>
+            <td class="num">${g.jugados}</td>
+            <td class="num">${g.ganados}</td>
+            <td class="bar-cell">
+              <div class="bar-wrap">
+                <div class="bar"><span style="width:${g.efectividad}%"></span></div>
+                <span class="pct">${g.efectividad}%</span>
+              </div>
+            </td>
+            <td class="bar-cell">
+              <div class="bar-wrap">
+                <div class="bar"><span style="width:${g.aportacion}%"></span></div>
+                <span class="pct">${g.aportacion}%</span>
+              </div>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table></div>
+  `;
+}
+
+// ---- Tabs ----
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---- Sort delegation ----
+function bindSort(panelId, stateKey, rerender) {
+  const panel = document.getElementById(panelId);
+  panel.addEventListener('click', (e) => {
+    const th = e.target.closest('th.sortable');
+    if (!th || !panel.contains(th)) return;
+    const key = th.dataset.key;
+    const cur = state[stateKey].sort;
+    if (cur.key === key) {
+      cur.dir = cur.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      cur.key = key;
+      cur.dir = th.dataset.type === 'num' ? 'desc' : 'asc';
+    }
+    rerender();
+  });
+}
+bindSort('tabla', 'tabla', renderTabla);
+bindSort('partidos', 'partidos', () => renderPartidos(currentPartidosFiltered()));
+bindSort('jugadores', 'jugadores', renderJugadores);
+
+function currentPartidosFiltered() {
+  const f = document.getElementById('filter-fecha');
+  const e = document.getElementById('filter-equipo');
+  const fv = f ? f.value : '';
+  const ev = e ? e.value : '';
+  return allPartidos.filter(r =>
+    (!fv || r.fecha === fv) &&
+    (!ev || r.equipo_a === ev || r.equipo_b === ev)
+  );
+}
+
+// ---- Theme toggle ----
+(function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefers = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (!saved && prefers)) document.body.classList.add('dark');
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+  });
+})();
+
+// ---- PNG Export ----
+document.querySelectorAll('.btn-export').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const target = document.getElementById(btn.dataset.target);
+    if (!target || typeof html2canvas === 'undefined') return;
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
+    try {
+      const bg = getComputedStyle(document.body).getPropertyValue('--bg').trim() || '#ffffff';
+      const canvas = await html2canvas(target, {
+        backgroundColor: bg,
+        scale: window.devicePixelRatio >= 2 ? 2 : 1.5,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `nekoma-${btn.dataset.target}-${date}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+    } catch (err) {
+      alert('Error al exportar PNG: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  });
+});
+
+// ---- Load ----
+async function load() {
+  try {
+    const res = await fetch(CSV_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    const records = toRecords(rows);
+
+    state.tabla.rows = queryTabla(records);
+    renderTabla();
+
+    setupPartidosFilters(queryPartidos(records));
+
+    state.jugadores.rows = queryJugadores(records);
+    setupJugadoresFilters(state.jugadores.rows);
+    renderJugadores();
+
+    const d = new Date();
+    document.getElementById('updated').textContent =
+      'Actualizado ' + d.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+  } catch (err) {
+    const msg = 'Error al cargar datos: ' + err.message;
+    for (const id of ['tabla-content', 'partidos-content', 'jugadores-content']) {
+      const el = document.getElementById(id);
+      if (el) { el.className = 'state error'; el.textContent = msg; }
+    }
+  }
+}
+
+load();
+</script>
+</body>
+</html>
