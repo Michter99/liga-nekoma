@@ -1361,31 +1361,91 @@
       })();
 
       // ---- PNG Export ----
-      // ---- PNG Export v4 (alta resolución real, respeta límites de canvas iOS) ----
       document.querySelectorAll(".btn-export").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const targetId = btn.dataset.target;
           const originalLabel = btn.textContent;
           btn.disabled = true;
           btn.textContent = "Generando…";
+
+          const filename = `nekoma-${targetId}-${new Date().toISOString().slice(0, 10)}.png`;
+
           try {
             const blob = await exportTableToPNG(targetId);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `nekoma-${targetId}-${new Date().toISOString().slice(0, 10)}.png`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 2000);
+            const file = new File([blob], filename, { type: "image/png" });
+
+            const canShareFiles =
+              typeof navigator.share === "function" &&
+              typeof navigator.canShare === "function" &&
+              navigator.canShare({ files: [file] });
+
+            btn.disabled = false;
+
+            if (canShareFiles) {
+              // Cambiar a botón de "Compartir" y esperar tap fresco
+              btn.textContent = "↑ Tocar para compartir";
+              btn.style.background = "var(--blue)";
+              btn.style.color = "#fff";
+              btn.style.borderColor = "var(--blue)";
+              btn.style.fontWeight = "700";
+
+              const shareHandler = async (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                btn.removeEventListener("click", shareHandler);
+                clearTimeout(timeoutId);
+
+                try {
+                  await navigator.share({
+                    files: [file],
+                    title: "Liga Nekoma",
+                  });
+                } catch (err) {
+                  if (err.name !== "AbortError") {
+                    triggerDownload(blob, filename);
+                  }
+                } finally {
+                  resetButton(btn, originalLabel);
+                }
+              };
+
+              btn.addEventListener("click", shareHandler);
+
+              const timeoutId = setTimeout(() => {
+                btn.removeEventListener("click", shareHandler);
+                resetButton(btn, originalLabel);
+              }, 15000);
+            } else {
+              // Sin soporte: descarga directa
+              triggerDownload(blob, filename);
+              resetButton(btn, originalLabel);
+            }
           } catch (err) {
             alert("Error al exportar PNG: " + err.message);
-          } finally {
-            btn.disabled = false;
-            btn.textContent = originalLabel;
+            resetButton(btn, originalLabel);
           }
         });
       });
+
+      function resetButton(btn, label) {
+        btn.disabled = false;
+        btn.textContent = label;
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.style.borderColor = "";
+        btn.style.fontWeight = "";
+      }
+
+      function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
 
       function exportTableToPNG(targetId) {
         return new Promise((resolve, reject) => {
