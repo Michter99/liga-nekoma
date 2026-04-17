@@ -1361,104 +1361,392 @@
       })();
 
       // ---- PNG Export ----
-      // ---- PNG Export (iOS-safe: clona el nodo y sustituye fuentes por las del sistema) ----
+      // ---- PNG Export v4 (alta resolución real, respeta límites de canvas iOS) ----
       document.querySelectorAll(".btn-export").forEach((btn) => {
         btn.addEventListener("click", async () => {
-          const target = document.getElementById(btn.dataset.target);
-          if (!target || typeof html2canvas === "undefined") return;
+          const targetId = btn.dataset.target;
           const originalLabel = btn.textContent;
           btn.disabled = true;
           btn.textContent = "Generando…";
-
-          // Contenedor oculto donde montaremos el clon
-          const stage = document.createElement("div");
-          stage.style.cssText = `
-      position: fixed;
-      left: -99999px;
-      top: 0;
-      width: ${target.offsetWidth}px;
-      pointer-events: none;
-      z-index: -1;
-    `;
-
-          // Clon del nodo a exportar
-          const clone = target.cloneNode(true);
-
-          // Estilos inyectados: reemplazan las familias de Google por fuentes del sistema
-          // - Archivo Black  -> Helvetica Neue 900 ultra-condensed (más parecido en iOS)
-          // - JetBrains Mono -> SF Mono / Menlo
-          // - Inter          -> SF Pro / system-ui
-          const style = document.createElement("style");
-          style.textContent = `
-      .export-root, .export-root * {
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
-      }
-      .export-root [class*="team"],
-      .export-root .team,
-      .export-root h1,
-      .export-root .brand,
-      .export-root .group-header td {
-        font-family: "Helvetica Neue", "Arial Black", Impact, sans-serif !important;
-        font-weight: 900 !important;
-        font-stretch: condensed !important;
-        letter-spacing: -0.01em !important;
-      }
-      .export-root .meta,
-      .export-root .brand small,
-      .export-root th,
-      .export-root .rank,
-      .export-root .score,
-      .export-root .pct,
-      .export-root .tab,
-      .export-root .filter,
-      .export-root .filter-reset,
-      .export-root .btn-export {
-        font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace !important;
-      }
-    `;
-
-          clone.classList.add("export-root");
-          stage.appendChild(style);
-          stage.appendChild(clone);
-          document.body.appendChild(stage);
-
           try {
-            const bg =
-              getComputedStyle(document.body).getPropertyValue("--bg").trim() ||
-              "#ffffff";
-            const canvas = await html2canvas(clone, {
-              backgroundColor: bg,
-              scale: window.devicePixelRatio >= 2 ? 2 : 1.5,
-              useCORS: true,
-              allowTaint: false,
-              logging: false,
-            });
-
-            // iOS Safari: toBlob puede fallar por taint -> usar dataURL dentro de try
-            let dataUrl;
-            try {
-              dataUrl = canvas.toDataURL("image/png");
-            } catch (e) {
-              throw new Error(
-                "El navegador bloqueó la exportación por seguridad.",
-              );
-            }
-
+            const blob = await exportTableToPNG(targetId);
+            const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = dataUrl;
-            a.download = `nekoma-${btn.dataset.target}-${new Date().toISOString().slice(0, 10)}.png`;
+            a.href = url;
+            a.download = `nekoma-${targetId}-${new Date().toISOString().slice(0, 10)}.png`;
             document.body.appendChild(a);
             a.click();
             a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
           } catch (err) {
             alert("Error al exportar PNG: " + err.message);
           } finally {
-            stage.remove();
             btn.disabled = false;
             btn.textContent = originalLabel;
           }
         });
       });
+
+      function exportTableToPNG(targetId) {
+        return new Promise((resolve, reject) => {
+          try {
+            const card = document.getElementById(targetId);
+            if (!card) throw new Error("Contenedor no encontrado");
+            const table = card.querySelector("table");
+            if (!table) throw new Error("No hay tabla para exportar");
+
+            const isDark = document.body.classList.contains("dark");
+            const T = isDark
+              ? {
+                  bg: "#0a0c14",
+                  ink: "#e9ebf2",
+                  muted: "#7e8393",
+                  blue: "#5957ff",
+                  line: "rgba(233,235,242,0.12)",
+                  headBg: "rgba(255,255,255,0.04)",
+                  barBg: "rgba(233,235,242,0.12)",
+                  cardBg: "#14161f",
+                  rankBg: "#e9ebf2",
+                  rankInk: "#0a0c14",
+                }
+              : {
+                  bg: "#e9e9ea",
+                  ink: "#0b1020",
+                  muted: "#6b6e7a",
+                  blue: "#2a27ff",
+                  line: "rgba(11,16,32,0.14)",
+                  headBg: "rgba(255,255,255,0.6)",
+                  barBg: "rgba(11,16,32,0.1)",
+                  cardBg: "#ffffff",
+                  rankBg: "#0b1020",
+                  rankInk: "#ffffff",
+                };
+
+            const FONT_DISPLAY = `Impact, "Helvetica Neue Condensed", "Arial Narrow", "Arial Black", sans-serif`;
+            const FONT_BODY = `-apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif`;
+            const FONT_MONO = `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Courier New", monospace`;
+
+            // Extraer datos
+            const headerCells = [...table.querySelectorAll("thead th")];
+            const headers = headerCells.map((th) => ({
+              text: th.textContent.trim(),
+              isNum: th.classList.contains("num"),
+              isBar: th.classList.contains("bar-cell"),
+            }));
+            const rows = [...table.querySelectorAll("tbody tr")].map((tr) =>
+              [...tr.querySelectorAll("td")].map((td) => {
+                const rankEl = td.querySelector(".rank");
+                const barEl = td.querySelector(".bar > span");
+                const pctEl = td.querySelector(".pct");
+                const scoreEl = td.querySelector(".score");
+                const styleColor = (td.getAttribute("style") || "").includes(
+                  "var(--blue)",
+                );
+                return {
+                  text: td.textContent.trim(),
+                  isTeam: td.classList.contains("team"),
+                  isNum: td.classList.contains("num"),
+                  isBar: td.classList.contains("bar-cell"),
+                  isRank: !!rankEl,
+                  isRankTop: rankEl && rankEl.classList.contains("top"),
+                  rankText: rankEl ? rankEl.textContent.trim() : null,
+                  isWin: scoreEl && scoreEl.classList.contains("win"),
+                  isTeamWinner: styleColor,
+                  barPct: barEl ? parseFloat(barEl.style.width) || 0 : null,
+                  pctLabel: pctEl ? pctEl.textContent.trim() : null,
+                };
+              }),
+            );
+
+            // ---- Estrategia: calcular tamaños escalados a un factor K ----
+            // K = multiplicador de resolución. Dibujamos TODO directamente a tamaño K*base.
+            // No usamos ctx.scale() — control total sobre el output real.
+            const MAX_CANVAS_WIDTH = 4000; // iOS Safari soporta bien hasta ~4096px
+            const BASE = {
+              // tamaños base en "px lógicos"
+              padding: 36,
+              titleFS: 28,
+              subtitleFS: 12,
+              titleGap: 44,
+              headerH: 48,
+              rowH: 54,
+              colPad: 22,
+              cardRadius: 16,
+              headFS: 12,
+              teamFS: 18,
+              numFS: 18,
+              bodyFS: 15,
+              rankFS: 13,
+              rankH: 30,
+              barH: 6,
+              pctFS: 12,
+              pctW: 50,
+              barMinW: 110,
+              bottomGap: 24,
+            };
+
+            // Medir columnas a tamaño base (K=1) para saber qué tan ancha saldrá la imagen
+            const measure = document.createElement("canvas");
+            const mctx = measure.getContext("2d");
+            const setFont = (w, s, f) => {
+              mctx.font = `${w} ${s}px ${f}`;
+            };
+
+            const colWidths1 = headers.map((h, i) => {
+              setFont("600", BASE.headFS, FONT_MONO);
+              let max = mctx.measureText(h.text.toUpperCase()).width;
+              rows.forEach((r) => {
+                const c = r[i];
+                if (!c) return;
+                let w = 0;
+                if (c.isRank) {
+                  setFont("600", BASE.rankFS, FONT_MONO);
+                  w = Math.max(
+                    BASE.rankH,
+                    mctx.measureText(c.rankText).width + 18,
+                  );
+                } else if (c.isBar) {
+                  w = BASE.barMinW + (c.pctLabel ? BASE.pctW + 10 : 0);
+                } else if (c.isTeam) {
+                  setFont("900", BASE.teamFS, FONT_DISPLAY);
+                  w = mctx.measureText(c.text.toUpperCase()).width;
+                } else if (c.isNum) {
+                  setFont("600", BASE.numFS, FONT_MONO);
+                  w = mctx.measureText(c.text).width;
+                } else {
+                  setFont("500", BASE.bodyFS, FONT_BODY);
+                  w = mctx.measureText(c.text).width;
+                }
+                if (w > max) max = w;
+              });
+              return Math.ceil(max + BASE.colPad * 2);
+            });
+
+            const tableW1 = colWidths1.reduce((a, b) => a + b, 0);
+            const W1 = tableW1 + BASE.padding * 2;
+
+            // Elegir K: queremos K lo más alto posible pero sin pasar MAX_CANVAS_WIDTH
+            // También respetar el devicePixelRatio del dispositivo para no malgastar.
+            const dprCap = Math.min(
+              3,
+              Math.max(2, window.devicePixelRatio || 2),
+            );
+            const kByDpr = dprCap;
+            const kByWidth = MAX_CANVAS_WIDTH / W1;
+            const K = Math.min(kByDpr, kByWidth, 3);
+
+            // Escalar TODOS los valores por K
+            const S = {};
+            for (const key in BASE) S[key] = BASE[key] * K;
+            const colWidths = colWidths1.map((w) => w * K);
+            const tableW = tableW1 * K;
+            const W = W1 * K;
+            const cardH = S.headerH + S.rowH * rows.length;
+            const H = S.padding * 2 + S.titleGap + cardH + S.bottomGap;
+
+            // Canvas a tamaño real (no usamos ctx.scale)
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.ceil(W);
+            canvas.height = Math.ceil(H);
+            const ctx = canvas.getContext("2d");
+
+            // Activar smoothing de alta calidad
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.textBaseline = "middle";
+
+            // Fondo
+            ctx.fillStyle = T.bg;
+            ctx.fillRect(0, 0, W, H);
+
+            // Título
+            const titleMap = {
+              "tabla-card": "LIGA NEKOMA — TABLA",
+              "partidos-card": "LIGA NEKOMA — PARTIDOS",
+              "jugadores-card": "LIGA NEKOMA — JUGADORES",
+            };
+            const titleText = titleMap[targetId] || "LIGA NEKOMA";
+
+            ctx.fillStyle = T.blue;
+            ctx.font = `900 ${S.titleFS}px ${FONT_DISPLAY}`;
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.fillText(titleText, S.padding, S.padding);
+
+            ctx.fillStyle = T.muted;
+            ctx.font = `600 ${S.subtitleFS}px ${FONT_MONO}`;
+            const dateStr = new Date()
+              .toLocaleString("es-ES", {
+                dateStyle: "short",
+                timeStyle: "short",
+              })
+              .toUpperCase();
+            ctx.fillText(dateStr, S.padding, S.padding + S.titleFS + 6 * K);
+
+            // Card
+            const cardX = S.padding;
+            const cardY = S.padding + S.titleGap + 20 * K;
+            roundRect(ctx, cardX, cardY, tableW, cardH, S.cardRadius);
+            ctx.fillStyle = T.cardBg;
+            ctx.fill();
+            ctx.lineWidth = 1 * K;
+            ctx.strokeStyle = T.line;
+            ctx.stroke();
+
+            // Header bg
+            ctx.save();
+            roundRectTop(ctx, cardX, cardY, tableW, S.headerH, S.cardRadius);
+            ctx.clip();
+            ctx.fillStyle = T.headBg;
+            ctx.fillRect(cardX, cardY, tableW, S.headerH);
+            ctx.restore();
+
+            // Header texto
+            ctx.font = `600 ${S.headFS}px ${FONT_MONO}`;
+            ctx.fillStyle = T.muted;
+            ctx.textBaseline = "middle";
+            let x = cardX;
+            headers.forEach((h, i) => {
+              const w = colWidths[i];
+              ctx.textAlign = h.isNum ? "right" : "left";
+              const tx = h.isNum ? x + w - S.colPad : x + S.colPad;
+              ctx.fillText(h.text.toUpperCase(), tx, cardY + S.headerH / 2);
+              x += w;
+            });
+
+            // Línea debajo del header
+            ctx.strokeStyle = T.line;
+            ctx.lineWidth = 1 * K;
+            ctx.beginPath();
+            ctx.moveTo(cardX, cardY + S.headerH);
+            ctx.lineTo(cardX + tableW, cardY + S.headerH);
+            ctx.stroke();
+
+            // Filas
+            rows.forEach((row, ri) => {
+              const y = cardY + S.headerH + S.rowH * ri;
+              const cy = y + S.rowH / 2;
+
+              if (ri > 0) {
+                ctx.strokeStyle = T.line;
+                ctx.lineWidth = 1 * K;
+                ctx.beginPath();
+                ctx.moveTo(cardX + S.colPad, y);
+                ctx.lineTo(cardX + tableW - S.colPad, y);
+                ctx.stroke();
+              }
+
+              let cx = cardX;
+              row.forEach((cell, ci) => {
+                const w = colWidths[ci];
+
+                if (cell.isRank) {
+                  ctx.font = `600 ${S.rankFS}px ${FONT_MONO}`;
+                  const pillW = Math.max(
+                    S.rankH,
+                    ctx.measureText(cell.rankText).width + 18 * K,
+                  );
+                  const pillH = S.rankH;
+                  const px = cx + S.colPad;
+                  const py = cy - pillH / 2;
+                  roundRect(ctx, px, py, pillW, pillH, pillH / 2);
+                  ctx.fillStyle = cell.isRankTop ? T.blue : T.rankBg;
+                  ctx.fill();
+                  ctx.fillStyle = cell.isRankTop ? "#fff" : T.rankInk;
+                  ctx.textAlign = "center";
+                  ctx.textBaseline = "middle";
+                  ctx.fillText(cell.rankText, px + pillW / 2, cy + 1 * K);
+                } else if (cell.isBar) {
+                  const labelW = cell.pctLabel ? S.pctW + 10 * K : 0;
+                  const barW = w - S.colPad * 2 - labelW;
+                  const bx = cx + S.colPad;
+                  const by = cy - S.barH / 2;
+                  roundRect(ctx, bx, by, barW, S.barH, S.barH / 2);
+                  ctx.fillStyle = T.barBg;
+                  ctx.fill();
+                  const pct =
+                    Math.max(0, Math.min(100, cell.barPct || 0)) / 100;
+                  if (pct > 0) {
+                    const fillW = Math.max(S.barH, barW * pct);
+                    roundRect(ctx, bx, by, fillW, S.barH, S.barH / 2);
+                    ctx.fillStyle = T.blue;
+                    ctx.fill();
+                  }
+                  if (cell.pctLabel) {
+                    ctx.font = `600 ${S.pctFS}px ${FONT_MONO}`;
+                    ctx.fillStyle = T.muted;
+                    ctx.textAlign = "right";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(cell.pctLabel, cx + w - S.colPad, cy);
+                  }
+                } else if (cell.isTeam) {
+                  ctx.font = `900 ${S.teamFS}px ${FONT_DISPLAY}`;
+                  ctx.fillStyle = cell.isTeamWinner ? T.blue : T.ink;
+                  ctx.textAlign = "left";
+                  ctx.textBaseline = "middle";
+                  ctx.fillText(cell.text.toUpperCase(), cx + S.colPad, cy);
+                } else if (cell.isNum) {
+                  ctx.font = `600 ${S.numFS}px ${FONT_MONO}`;
+                  ctx.fillStyle = cell.isWin ? T.blue : T.ink;
+                  ctx.textAlign = "right";
+                  ctx.textBaseline = "middle";
+                  ctx.fillText(cell.text, cx + w - S.colPad, cy);
+                } else {
+                  ctx.font = `500 ${S.bodyFS}px ${FONT_BODY}`;
+                  ctx.fillStyle = T.ink;
+                  ctx.textAlign = "left";
+                  ctx.textBaseline = "middle";
+                  ctx.fillText(cell.text, cx + S.colPad, cy);
+                }
+
+                cx += w;
+              });
+            });
+
+            // Exportar como Blob (mejor en iOS que toDataURL para canvas grandes)
+            if (canvas.toBlob) {
+              canvas.toBlob((blob) => {
+                if (!blob)
+                  return reject(new Error("No se pudo generar el PNG"));
+                resolve(blob);
+              }, "image/png");
+            } else {
+              // Fallback: dataURL -> Blob
+              const dataUrl = canvas.toDataURL("image/png");
+              const bin = atob(dataUrl.split(",")[1]);
+              const arr = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+              resolve(new Blob([arr], { type: "image/png" }));
+            }
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      function roundRect(ctx, x, y, w, h, r) {
+        r = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
+
+      function roundRectTop(ctx, x, y, w, h, r) {
+        r = Math.min(r, w / 2, h);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h);
+        ctx.lineTo(x, y + h);
+        ctx.lineTo(x, y + r);
+        ctx.arcTo(x, y, x + r, y, r);
+        ctx.closePath();
+      }
 
       // ---- Load ----
       async function load() {
