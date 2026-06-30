@@ -853,21 +853,184 @@
 
       // ---- Queries adapted to JS ----
 
-      function queryTabla(records) {
-        const counts = new Map();
+      // Devuelve las fechas únicas en el orden en que aparecen en el CSV
+      // (orden cronológico de captura), una por jornada.
+      function getOrderedFechas(records) {
+        const seen = [];
         for (const r of records) {
+          const f = r.fecha;
+          if (f && !seen.includes(f)) seen.push(f);
+        }
+        return seen;
+      }
+
+      // Agrupa los registros (uno por enfrentamiento individual) en partidos
+      // completos equipo vs equipo, contando cuántos de los puntos
+      // individuales ganó cada lado.
+      function aggregateMatchesForStandings(records) {
+        const map = new Map();
+        for (const r of records) {
+          const key = [r.fecha, r.equipo_a, r.equipo_b, r.num_partido].join(
+            "||",
+          );
+          if (!map.has(key)) {
+            map.set(key, {
+              fecha: r.fecha,
+              equipo_a: r.equipo_a,
+              equipo_b: r.equipo_b,
+              num_partido: r.num_partido,
+              ganados_a: 0,
+              ganados_b: 0,
+            });
+          }
+          const row = map.get(key);
           const sa = toNum(r.sets_a),
             sb = toNum(r.sets_b);
-          if (!Number.isFinite(sa) || !Number.isFinite(sb)) continue;
-          let winner = null;
-          if (sa > sb) winner = r.equipo_a;
-          else if (sa < sb) winner = r.equipo_b;
-          if (!winner) continue;
-          counts.set(winner, (counts.get(winner) ?? 0) + 1);
+          if (Number.isFinite(sa) && Number.isFinite(sb)) {
+            if (sa > sb) row.ganados_a += 1;
+            else if (sa < sb) row.ganados_b += 1;
+          }
         }
-        return [...counts.entries()]
-          .map(([equipo, victorias]) => ({ equipo, victorias }))
-          .sort((a, b) => b.victorias - a.victorias);
+        return [...map.values()];
+      }
+
+      function teamPointsFromMatches(matches) {
+        const pts = new Map();
+        for (const m of matches) {
+          if (!m.equipo_a || !m.equipo_b) continue;
+          pts.set(m.equipo_a, (pts.get(m.equipo_a) ?? 0) + m.ganados_a);
+          pts.set(m.equipo_b, (pts.get(m.equipo_b) ?? 0) + m.ganados_b);
+        }
+        return pts;
+      }
+
+      // Puntos individuales ganados por cada equipo en sus enfrentamientos
+      // cara a cara contra cada rival, usado para desempatar.
+      function buildHeadToHead(matches) {
+        const h2h = new Map();
+        const add = (teamX, teamY, ptsX) => {
+          if (!teamX || !teamY) return;
+          const key = teamX + "||" + teamY;
+          h2h.set(key, (h2h.get(key) ?? 0) + ptsX);
+        };
+        for (const m of matches) {
+          add(m.equipo_a, m.equipo_b, m.ganados_a);
+          add(m.equipo_b, m.equipo_a, m.ganados_b);
+        }
+        return h2h;
+      }
+
+      // -1 si A debe ir antes que B por el resultado directo, 1 si después,
+      // 0 si no hay enfrentamiento directo registrado entre ambos.
+      function h2hCompare(teamA, teamB, h2h) {
+        const aVsB = h2h.get(teamA + "||" + teamB);
+        const bVsA = h2h.get(teamB + "||" + teamA);
+        if (aVsB === undefined || bVsA === undefined) return 0;
+        if (aVsB === bVsA) return 0;
+        return aVsB > bVsA ? -1 : 1;
+      }
+
+      function sortByPuntosConDesempate(teams, puntos, h2h) {
+        return teams.slice().sort((a, b) => {
+          const pa = puntos.get(a) ?? 0;
+          const pb = puntos.get(b) ?? 0;
+          if (pb !== pa) return pb - pa;
+          const h = h2hCompare(a, b, h2h);
+          if (h !== 0) return h;
+          return a.localeCompare(b);
+        });
+      }
+
+      // Calcula la tabla de posiciones respetando el reglamento de Nekoma:
+      //  - Fase regular: las primeras 3 jornadas (todos contra todos).
+      //  - Al cerrar la fase regular se fijan dos grupos: Superior (los 4
+      //    primeros lugares) e Inferior (los 4 últimos). Esa división es
+      //    permanente — ningún equipo del grupo inferior puede superar a uno
+      //    del grupo superior en la jornada de Final Four, sin importar
+      //    cuántos puntos gane ahí.
+      //  - Los empates en puntos se resuelven por el resultado del partido
+      //    directo entre los equipos empatados.
+      function computeStandings(records) {
+        const allMatches = aggregateMatchesForStandings(records);
+        const allTeams = new Set();
+        allMatches.forEach((m) => {
+          if (m.equipo_a) allTeams.add(m.equipo_a);
+          if (m.equipo_b) allTeams.add(m.equipo_b);
+        });
+
+        const fechas = getOrderedFechas(records);
+        const fechasRegular = fechas.slice(0, 3);
+        const fechasFinal = fechas.slice(3);
+        const regularComplete = fechasRegular.length >= 3;
+
+        if (!regularComplete) {
+          // Fase regular en curso: tabla general simple, grupos aún no existen.
+          const puntos = teamPointsFromMatches(allMatches);
+          const h2h = buildHeadToHead(allMatches);
+          const orden = sortByPuntosConDesempate([...allTeams], puntos, h2h);
+          return orden.map((equipo) => ({
+            equipo,
+            puntos: puntos.get(equipo) ?? 0,
+            grupo: null,
+          }));
+        }
+
+        const matchesRegular = allMatches.filter((m) =>
+          fechasRegular.includes(m.fecha),
+        );
+        const matchesFinal = allMatches.filter((m) =>
+          fechasFinal.includes(m.fecha),
+        );
+
+        const puntosRegular = teamPointsFromMatches(matchesRegular);
+        const h2hRegular = buildHeadToHead(matchesRegular);
+
+        // Grupos fijos según la posición al cierre de la fase regular.
+        const ordenRegular = sortByPuntosConDesempate(
+          [...allTeams],
+          puntosRegular,
+          h2hRegular,
+        );
+        const grupoSuperior = ordenRegular.slice(0, 4);
+        const grupoInferior = ordenRegular.slice(4, 8);
+
+        // Puntos totales = fase regular + Final Four (si ya se jugó).
+        const puntosFinal = teamPointsFromMatches(matchesFinal);
+        const puntosTotales = new Map();
+        allTeams.forEach((equipo) => {
+          puntosTotales.set(
+            equipo,
+            (puntosRegular.get(equipo) ?? 0) + (puntosFinal.get(equipo) ?? 0),
+          );
+        });
+
+        // El desempate dentro de cada grupo usa el resultado directo
+        // considerando todos los enfrentamientos de la temporada.
+        const h2hTotal = buildHeadToHead(allMatches);
+
+        const ordenSuperior = sortByPuntosConDesempate(
+          grupoSuperior,
+          puntosTotales,
+          h2hTotal,
+        );
+        const ordenInferior = sortByPuntosConDesempate(
+          grupoInferior,
+          puntosTotales,
+          h2hTotal,
+        );
+
+        return [
+          ...ordenSuperior.map((equipo) => ({
+            equipo,
+            puntos: puntosTotales.get(equipo) ?? 0,
+            grupo: "superior",
+          })),
+          ...ordenInferior.map((equipo) => ({
+            equipo,
+            puntos: puntosTotales.get(equipo) ?? 0,
+            grupo: "inferior",
+          })),
+        ];
       }
 
       function queryPartidos(records) {
@@ -957,7 +1120,7 @@
       // ---- Renderers ----
 
       const state = {
-        tabla: { rows: [], sort: { key: "victorias", dir: "desc" } },
+        tabla: { rows: [], sort: { key: "puntos", dir: "desc" } },
         partidos: { rows: [], sort: { key: "num_partido", dir: "asc" } },
         jugadores: {
           rows: [],
@@ -1018,17 +1181,43 @@
           el.textContent = "Sin datos";
           return;
         }
-        const sorted = sortRows(
-          rows,
-          sort.key,
-          sort.dir,
-          sort.key === "victorias" ? "num" : "str",
-        );
-        const max = Math.max(...rows.map((r) => r.victorias)) || 1;
+        const sortType = sort.key === "puntos" ? "num" : "str";
+        const max = Math.max(...rows.map((r) => r.puntos)) || 1;
         const cols = [
           { key: "equipo", label: "Equipo" },
-          { key: "victorias", label: "Victorias", numeric: true },
+          { key: "puntos", label: "Puntos", numeric: true },
         ];
+
+        const hasGroups = rows.some((r) => r.grupo);
+
+        // El orden ENTRE grupos es fijo (Superior siempre antes que
+        // Inferior, sin importar puntos); el click en una columna solo
+        // reordena DENTRO de cada grupo.
+        let displayRows;
+        if (hasGroups) {
+          const superior = sortRows(
+            rows.filter((r) => r.grupo === "superior"),
+            sort.key,
+            sort.dir,
+            sortType,
+          );
+          const inferior = sortRows(
+            rows.filter((r) => r.grupo === "inferior"),
+            sort.key,
+            sort.dir,
+            sortType,
+          );
+          displayRows = [
+            { isGroupHeader: true, label: "Grupo Superior · Final Four" },
+            ...superior,
+            { isGroupHeader: true, label: "Grupo Inferior · Final Four" },
+            ...inferior,
+          ];
+        } else {
+          displayRows = sortRows(rows, sort.key, sort.dir, sortType);
+        }
+
+        let rank = 0;
         el.className = "";
         el.innerHTML = `
     <div class="table-wrap"><table>
@@ -1038,19 +1227,18 @@
         <th class="bar-cell"></th>
       </tr></thead>
       <tbody>
-        ${sorted
-          .map((r, i) => {
-            const rank =
-              rows
-                .slice()
-                .sort((a, b) => b.victorias - a.victorias)
-                .findIndex((x) => x.equipo === r.equipo) + 1;
+        ${displayRows
+          .map((r) => {
+            if (r.isGroupHeader) {
+              return `<tr class="group-header"><td colspan="4">${escapeHTML(r.label)}</td></tr>`;
+            }
+            rank += 1;
             return `
           <tr>
             <td><span class="rank ${rank === 1 ? "top" : ""}">${rank}</span></td>
             <td class="team">${escapeHTML(r.equipo)}</td>
-            <td class="num"><span class="score"><span class="win">${r.victorias}</span></span></td>
-            <td class="bar-cell"><div class="bar"><span style="width:${((r.victorias / max) * 100).toFixed(1)}%"></span></div></td>
+            <td class="num"><span class="score"><span class="win">${r.puntos}</span></span></td>
+            <td class="bar-cell"><div class="bar"><span style="width:${((r.puntos / max) * 100).toFixed(1)}%"></span></div></td>
           </tr>
         `;
           })
@@ -1817,7 +2005,7 @@
           const rows = parseCSV(text);
           const records = toRecords(rows);
 
-          state.tabla.rows = queryTabla(records);
+          state.tabla.rows = computeStandings(records);
           renderTabla();
 
           setupPartidosFilters(queryPartidos(records));
