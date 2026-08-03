@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liga Nekoma</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">NEKOMA<small>TABLE · TENNIS</small></div>
+      <div class="header-actions">
+        <a class="back-link" href="index.html">← Temporadas</a>
+        <button
+          type="button"
+          id="theme-toggle"
+          class="theme-toggle"
+          aria-label="Cambiar tema"
+        >
+          <svg
+            class="icon-sun"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+            />
+          </svg>
+          <svg
+            class="icon-moon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="ghost">LIGA NEKOMA</div>
+      <h1 id="hero-title">Liga<br />Nekoma</h1>
+      <p class="hero-meta" id="hero-meta"></p>
+    </section>
+
+    <main>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="tabla" role="tab">Tabla</button>
+        <button class="tab" data-tab="partidos" role="tab">
+          Resultados Partidos
+        </button>
+        <button class="tab" data-tab="jugadores" role="tab">
+          Resultados Jugadores
+        </button>
+      </div>
+
+      <div id="tabla" class="panel active">
+        <div class="toolbar">
+          <button type="button" class="btn-export" data-target="tabla-card">
+            Exportar PNG
+          </button>
+        </div>
+        <div class="card" id="tabla-card">
+          <div id="tabla-content" class="state">Cargando…</div>
+        </div>
+      </div>
+      <div id="partidos" class="panel">
+        <div class="filters" id="partidos-filters" hidden>
+          <label class="filter">
+            <span>Fecha</span>
+            <select id="filter-fecha">
+              <option value="">Todas</option>
+            </select>
+          </label>
+          <label class="filter">
+            <span>Equipo</span>
+            <select id="filter-equipo">
+              <option value="">Todos</option>
+            </select>
+          </label>
+          <button type="button" class="filter-reset" id="filter-reset">
+            Limpiar
+          </button>
+          <button type="button" class="btn-export" data-target="partidos-card">
+            Exportar PNG
+          </button>
+        </div>
+        <div class="card" id="partidos-card">
+          <div id="partidos-content" class="state">Cargando…</div>
+        </div>
+      </div>
+      <div id="jugadores" class="panel">
+        <div class="filters" id="jugadores-filters" hidden>
+          <label class="filter">
+            <span>Equipo</span>
+            <select id="filter-jug-equipo">
+              <option value="">Todos</option>
+            </select>
+          </label>
+          <button type="button" class="filter-reset" id="filter-jug-reset">
+            Limpiar
+          </button>
+          <button type="button" class="btn-export" data-target="jugadores-card">
+            Exportar PNG
+          </button>
+        </div>
+        <div class="card" id="jugadores-card">
+          <div id="jugadores-content" class="state">Cargando…</div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <span id="footer-season">NEKOMA</span>
+      <span id="updated"></span>
+    </footer>
+
+    <script src="assets/config.js"></script>
+    <script src="assets/core.js"></script>
+    <script src="assets/temporada.js"></script>
+  </body>
+</html>
